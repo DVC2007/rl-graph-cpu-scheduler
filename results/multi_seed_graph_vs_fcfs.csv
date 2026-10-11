@@ -1,0 +1,3 @@
+comparison,metric,mean_difference,ci_95_low,ci_95_high,graph_better
+GraphSAGE + MaskablePPO - FCFS,average_waiting,-6.229263005780347,-6.329046242774566,-6.121315028901735,True
+GraphSAGE + MaskablePPO - FCFS,priority_weighted_waiting,-9.44851878612717,-9.594111271676303,-9.269255780346825,True

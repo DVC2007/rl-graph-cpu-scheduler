@@ -1,0 +1,5 @@
+comparison,metric,mean_difference,ci_95_low,ci_95_high,graph_better
+GraphSAGE + MaskablePPO - FCFS,episode_average_waiting,-5.364514285714286,-5.809110714285714,-4.938993273809524,True
+GraphSAGE + MaskablePPO - Round Robin (q=2),episode_average_waiting,-6.1582333333333334,-6.621226369047619,-5.708475952380953,True
+GraphSAGE + MaskablePPO - Priority + aging,episode_average_waiting,-6.2381142857142855,-6.694513214285714,-5.7772524404761905,True
+GraphSAGE + MaskablePPO - Plain MaskablePPO,episode_average_waiting,-0.7587404761904762,-1.0096398214285713,-0.5092929166666669,True

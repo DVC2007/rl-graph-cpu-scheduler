@@ -6,8 +6,9 @@ import streamlit as st
 st.set_page_config(page_title="CPU Scheduling Lab", page_icon="◈", layout="wide")
 ROOT = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, ROOT)
-from rl_env import CPUSchedulingEnv, IDLE_ACTION, MAX_PROCESSES
+from rl_env import CPUSchedulingEnv, IDLE_ACTION, MAX_PROCESSES, PROCESS_WAIT_WEIGHT
 from process_graph import build_process_graph
+from scheduler_baselines import FCFSPolicy, PriorityAgingPolicy, RoundRobinPolicy
 
 TYPE_COLORS = {"SYSTEM": "#ff7b72", "INTERACTIVE": "#58a6ff", "BACKGROUND": "#d29922"}
 STATE_COLORS = {"READY": "#3fb950", "BLOCKED": "#8b949e", "FINISHED": "#484f58"}
@@ -47,6 +48,15 @@ def action_for(env, model):
     action, _ = model.predict(env._get_observation(), deterministic=True, action_masks=mask); return int(action)
 
 
+def baseline_specs(aging):
+    """Small, explainable reference schedulers used for the comparison table."""
+    return [
+        ("FCFS", lambda: FCFSPolicy()),
+        ("Round Robin (q=2)", lambda: RoundRobinPolicy(quantum=2)),
+        ("Priority + aging", lambda: PriorityAgingPolicy(aging)),
+    ]
+
+
 def step_live():
     env, model = st.session_state.env, st.session_state.model
     if all(p["finished"] for p in env.processes): return
@@ -62,7 +72,8 @@ def state(p): return "FINISHED" if p["finished"] else ("READY" if p["ready"] els
 
 def metrics(env):
     waits = [p["waiting"] for p in env.processes]
-    out = {"Average waiting": np.mean(waits), "Current max waiting": max(waits), "Elapsed time": env.current_time,
+    weighted_waits = [PROCESS_WAIT_WEIGHT[p["type"]] * p["waiting"] for p in env.processes]
+    out = {"Average waiting": np.mean(waits), "Priority-weighted avg wait": np.mean(weighted_waits), "Current max waiting": max(waits), "Elapsed time": env.current_time,
            "Starvation count": sum(w > 10 for w in waits), "Starvation rate": sum(w > 10 for w in waits) / len(waits)}
     for typ in TYPE_COLORS:
         vals = [p["waiting"] for p in env.processes if p["type"] == typ]; out[typ + " avg wait"] = np.mean(vals) if vals else 0
@@ -111,11 +122,14 @@ def process_cards(env):
 
 def compare(seed, aging, process_count):
     rows=[]
-    for label in MODEL_FILES:
-        model=load_model(label)
-        if model is None: continue
+    schedulers = baseline_specs(aging) + [(label, lambda label=label: load_model(label)) for label in MODEL_FILES]
+    for label, make_scheduler in schedulers:
+        scheduler = make_scheduler()
+        if scheduler is None: continue
         env=new_env(seed,aging,process_count)
-        while not all(p["finished"] for p in env.processes): env.step(action_for(env,model))
+        while not all(p["finished"] for p in env.processes):
+            action = scheduler.act(env) if hasattr(scheduler, "act") else action_for(env, scheduler)
+            env.step(action)
         rows.append({"Model":label,**metrics(env)})
     return rows
 
@@ -153,18 +167,32 @@ def main():
     with c2:
         st.markdown("<div class='section-title'>Dynamic process graph</div>",unsafe_allow_html=True); st.plotly_chart(graph_chart(env,st.session_state.selected),use_container_width=True,config={"displayModeBar":False})
     st.markdown("<div class='section-title'>Episode metrics</div>",unsafe_allow_html=True); ms=metrics(env)
-    for col,key in zip(st.columns(8),ms):
+    for col,key in zip(st.columns(len(ms)),ms):
         value = f"{ms[key]:.1%}" if key == "Starvation rate" else f"{ms[key]:.2f}"
         col.markdown(f"<div class='metric'><div class='value'>{value}</div><div class='label'>{key}</div></div>",unsafe_allow_html=True)
     with st.expander("Decision Context"): st.write({"chosen_action":st.session_state.last_action or "—","legal_action_mask":env.action_masks().tolist()})
     with st.expander("Research Debug View — hidden workload values"): st.caption("Hidden from RL policy — visible only for researcher inspection.");st.json([{p["name"]:{"cpu_bursts":p["cpu_bursts"],"io_bursts":p["io_bursts"]}} for p in env.processes])
     if st.session_state.get("comparison"):
         import pandas as pd, plotly.express as px
-        st.markdown("<div class='section-title'>Plain RL vs Graph-RL · same workload / same seed</div>",unsafe_allow_html=True);df=pd.DataFrame(st.session_state.comparison);st.plotly_chart(px.bar(df,x="Model",y="Average waiting",color="Model",template="plotly_dark"),use_container_width=True);st.dataframe(df,use_container_width=True,hide_index=True)
+        st.markdown("<div class='section-title'>Baseline comparison · same workload / same seed</div>",unsafe_allow_html=True);df=pd.DataFrame(st.session_state.comparison);st.plotly_chart(px.bar(df,x="Model",y="Average waiting",color="Model",template="plotly_dark"),use_container_width=True);st.dataframe(df,use_container_width=True,hide_index=True)
     summary=os.path.join(ROOT,"results","summary_results.csv")
     if os.path.exists(summary):
         import pandas as pd
-        with st.expander("Verified 500-workload benchmark"): st.dataframe(pd.read_csv(summary),use_container_width=True,hide_index=True)
+        with st.expander("Verified 500-workload benchmark · all baselines"): st.dataframe(pd.read_csv(summary),use_container_width=True,hide_index=True)
+    multi_seed = os.path.join(ROOT,"results","multi_seed_summary.csv")
+    if os.path.exists(multi_seed):
+        import pandas as pd
+        with st.expander("Five independently trained seeds · RL stability check"): st.dataframe(pd.read_csv(multi_seed),use_container_width=True,hide_index=True)
+    paired_seed = os.path.join(ROOT,"results","multi_seed_paired_average_waiting.csv")
+    if os.path.exists(paired_seed):
+        import pandas as pd
+        st.caption("Five-seed paired average-waiting test")
+        st.dataframe(pd.read_csv(paired_seed),use_container_width=True,hide_index=True)
+    versus_fcfs = os.path.join(ROOT,"results","multi_seed_graph_vs_fcfs.csv")
+    if os.path.exists(versus_fcfs):
+        import pandas as pd
+        st.caption("Five-seed Graph-RL versus FCFS")
+        st.dataframe(pd.read_csv(versus_fcfs),use_container_width=True,hide_index=True)
     st.markdown("<div class='section-title'>Architecture</div>",unsafe_allow_html=True);st.code("Observable state → Dynamic process graph → GraphSAGE → MaskablePPO → Legal action → CPU / I/O environment\nObservable state → MaskablePPO (plain baseline)")
 
 

@@ -30,23 +30,22 @@ class GraphSAGEFeatureExtractor(BaseFeaturesExtractor):
 
     def forward(self, observations):
         x = self._expand(observations)
-        batch, _, _ = x.shape
-        mapped = torch.zeros(batch, self.max_processes, 16, device=x.device)
-        for b in range(batch):
-            active = (observations[b].reshape(-1, 8).abs().sum(dim=1) > 0).nonzero(as_tuple=False).flatten()
-            if active.numel() == 0:
-                continue
-            nodes = x[b, active]
-            ready = nodes[:, -2] > 0
-            type_id = nodes[:, 1:4].argmax(dim=-1)
-            avg = nodes[:, 7]
-            relation = ready[:, None] & ready[None, :]
-            relation |= type_id[:, None] == type_id[None, :]
-            relation |= (avg[:, None] - avg[None, :]).abs() <= 1.0
-            relation |= torch.eye(len(active), device=x.device, dtype=torch.bool)
-            weights = relation.float()
-            neighbor_mean = weights @ nodes / weights.sum(-1, keepdim=True).clamp_min(1.0)
-            h = torch.relu(self.sage1(torch.cat([nodes, neighbor_mean], dim=-1)))
-            mean2 = weights @ h / weights.sum(-1, keepdim=True).clamp_min(1.0)
-            mapped[b, active] = torch.relu(self.sage2(torch.cat([h, mean2], dim=-1)))
-        return self.projection(mapped.reshape(batch, self.max_processes * 16))
+        # This is the same neighbourhood rule as the original per-sample
+        # implementation, expressed as batched tensor operations.  It keeps
+        # training practical while preserving the public-state-only graph.
+        public = observations.reshape(observations.shape[0], self.max_processes, 8)
+        active = public.abs().sum(dim=-1) > 0
+        ready = x[:, :, 8] > 0
+        type_id = x[:, :, 1:4].argmax(dim=-1)
+        average_burst = x[:, :, 7]
+        relation = (ready[:, :, None] & ready[:, None, :])
+        relation |= type_id[:, :, None] == type_id[:, None, :]
+        relation |= (average_burst[:, :, None] - average_burst[:, None, :]).abs() <= 1.0
+        relation &= active[:, :, None] & active[:, None, :]
+        relation |= torch.eye(self.max_processes, device=x.device, dtype=torch.bool)[None, :, :] & active[:, :, None]
+        weights = relation.float()
+        neighbor_mean = weights @ x / weights.sum(dim=-1, keepdim=True).clamp_min(1.0)
+        h = torch.relu(self.sage1(torch.cat([x, neighbor_mean], dim=-1)))
+        mean2 = weights @ h / weights.sum(dim=-1, keepdim=True).clamp_min(1.0)
+        mapped = torch.relu(self.sage2(torch.cat([h, mean2], dim=-1))) * active[:, :, None]
+        return self.projection(mapped.reshape(observations.shape[0], self.max_processes * 16))
