@@ -1,0 +1,41 @@
+Graph-Structured Reinforcement Learning for Fair and Efficient CPU Process Scheduling
+
+Abstract
+
+The scheduling algorithms built into modern operating systems -- FCFS, Round Robin, CFS, and so on -- do a decent job keeping the CPU busy, but none of them explicitly try to stop low-priority processes from starving. We built a system called GraphSAGE + MaskablePPO that tackles both problems at once. Instead of looking at each process in isolation, our scheduler constructs a small graph every single tick that encodes which processes are competing for the CPU, which ones belong to the same priority class, and which ones have had similar burst patterns recently. A GraphSAGE network reads this graph and feeds its output into a masked PPO agent. The agent also receives a reward signal that penalises it more and more steeply as any process's wait time crosses a threshold -- so it effectively teaches itself not to let anything starve. We tested it across 500 seeded episodes with bootstrap confidence intervals. On uniform workloads it cuts average wait by 23.7% and starvation by 24.4 percentage points compared to Linux's CFS. On harder exponential-burst workloads the throughput edge mostly disappears, but starvation still drops by 11.5 pp. A paired ablation showed something we didn't fully expect: on realistic workloads, the RL agent without the graph can't beat CFS at all. The graph isn't a nice-to-have. It's what makes the whole thing work.
+
+I. Introduction
+
+CPU scheduling has been studied to death, and yet we're still stuck. SRTF is provably optimal for minimising wait times, but it needs to know the future -- how long each burst will last before it happens. Obviously no real scheduler has that luxury. So instead we get heuristics. CFS in the Linux kernel is arguably the best of them: it tracks a "virtual runtime" per process and always runs whichever process has used the least, weighted by priority. It's elegant, it's fast, and it does surprisingly well in practice. But it has a blind spot. There's nothing in CFS that says "this process has been sitting here for ages, maybe we should run it." Priority aging exists as a concept in textbooks, but CFS doesn't use it.
+
+Recent work in deep RL has started tackling scheduling problems -- DeepRM for cluster resources, Decima for Spark job DAGs, RLScheduler for HPC batch queues. But all of these operate at a much coarser grain than what we're after. Nobody, as far as we've been able to find, has tried using a graph neural network for per-timeslice, per-process CPU dispatch with action masking and a fairness-aware reward.
+
+That's the gap we set out to fill. Our system has three moving parts: (1) a process graph rebuilt from scratch every tick using only publicly observable features, (2) a GraphSAGE feature extractor wired into MaskablePPO, and (3) a reward function that gets increasingly angry when processes wait too long. We chose GraphSAGE specifically because it was built for graphs that change shape between forward passes, which is exactly our situation -- processes come and go, block on I/O, wake up, finish.
+
+II. How It Works
+
+The environment simulates a single CPU with up to eight processes. Each one alternates between CPU bursts and I/O waits. The scheduler sees everything a real OS scheduler would see: how long each process has been waiting, what type it is, how much CPU it's used, its recent burst history. What it never sees is what's coming next -- future burst lengths stay hidden, just like in a real system.
+
+Every tick, we throw away the old graph and build a new one. Processes are nodes. Edges connect processes that are both competing for the CPU (contention edges), that share a type (similarity edges), or whose average burst lengths are within one tick of each other (burst-history edges). This last family turned out to matter a lot -- it's basically giving the policy a hint about which processes behave alike, without telling it anything about the future.
+
+The GraphSAGE layers aggregate each node's features with its neighbours' features across two rounds of message passing, producing a 48-dimensional vector that goes into a standard actor-critic PPO network. Invalid actions -- scheduling a finished or I/O-blocked process -- get their logits set to negative infinity before the softmax, following the masking approach from Huang and Ontanon.
+
+The reward function is where the fairness magic happens. Every tick, the agent is penalised for the total weighted wait of every ready process it didn't pick. But once any process crosses the 10-tick starvation threshold, an extra aging penalty kicks in that grows linearly with the overshoot. The result is that ignoring a hungry process gets more and more expensive, and the agent learns to attend to it -- not because we wrote a rule, but because the reward pushes it there.
+
+III. What We Found
+
+We benchmarked against six classical schedulers (FCFS, Round Robin, Priority+Aging, MLFQ, CFS, Stride), a flat-MLP version of our own agent (no graph), and SRTF as an oracle ceiling.
+
+On uniform workloads the results were clear. Our model hit 18.54 average wait (CI [17.81, 19.25]) versus 24.31 for CFS. Starvation dropped from 87.3% to 62.9%. Pretty much everything we tried beat FCFS and Round Robin, but beating CFS by this margin was the real test.
+
+Realistic workloads told a more interesting story. The average-wait gap between us and CFS shrank to about 1.2% -- basically a tie on throughput. But starvation was still 11.5 percentage points lower. Efficiency is hard to improve over CFS when the bursts are exponential, but fairness is where we actually shine.
+
+The paired ablation was revealing. We ran the same 500 workloads through the flat-MLP agent (no graph) and the full GraphSAGE agent and computed paired differences. On uniform workloads, RL alone closes about half the gap to SRTF. The graph adds another 8%. Both significant. But on realistic workloads, the flat agent actually does slightly worse than CFS (paired diff +0.6, confidence interval includes zero). Add the graph and the difference flips to -0.7, CI excluding zero. So on the harder workloads, the graph isn't just helpful -- without it, there's no significant improvement at all.
+
+IV. Limitations and Honest Caveats
+
+This is all in simulation. We haven't integrated anything into an actual Linux kernel, and that's the obvious next step. We're also limited to eight processes because of the fixed observation size. Our "realistic" workloads are based on textbook distributions, not captured from real machines. And all three edge types use the same mean-pooling aggregation -- relation-specific aggregation might help squeeze out more performance.
+
+V. Conclusion
+
+The takeaway is twofold. First, starvation reduction of 12-24 percentage points over CFS is the most consistent result across every condition we tested. The learned aging reward works. Second, the graph representation isn't optional. On realistic workloads -- the ones that actually look like what a real OS would face -- a flat RL agent can't beat CFS. The relational structure is what provides the signal to find scheduling opportunities that a flat observation vector misses. Next up: eBPF integration into a real kernel, variable-length process queues, and evaluation on production traces.
