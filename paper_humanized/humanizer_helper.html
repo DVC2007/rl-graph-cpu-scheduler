@@ -1,0 +1,959 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Paper Humanizer Helper</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: -apple-system, BlinkMacSystemFont, sans-serif; background: #1a1a2e; color: #e0e0e0; padding: 20px; }
+h1 { text-align: center; margin-bottom: 10px; color: #fff; }
+.subtitle { text-align: center; color: #888; margin-bottom: 20px; font-size: 14px; }
+.progress { text-align: center; margin-bottom: 20px; font-size: 18px; }
+.progress .done { color: #4ade80; font-weight: bold; }
+.progress .total { color: #888; }
+.chunk-container { max-width: 900px; margin: 0 auto; }
+.chunk { background: #16213e; border-radius: 12px; padding: 20px; margin-bottom: 16px; border: 1px solid #333; }
+.chunk.completed { border-color: #4ade80; opacity: 0.7; }
+.chunk-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+.chunk-id { font-weight: bold; color: #60a5fa; font-size: 16px; }
+.chunk-section { color: #888; font-size: 13px; }
+.chunk-words { color: #666; font-size: 12px; }
+.text-box { width: 100%; min-height: 80px; padding: 12px; border-radius: 8px; border: 1px solid #444; background: #0f172a; color: #e0e0e0; font-size: 14px; line-height: 1.5; resize: vertical; font-family: Georgia, serif; }
+.text-box:focus { border-color: #60a5fa; outline: none; }
+label { display: block; font-size: 12px; color: #888; margin: 8px 0 4px; text-transform: uppercase; letter-spacing: 1px; }
+.btn-row { display: flex; gap: 8px; margin-top: 10px; }
+.btn { padding: 8px 16px; border: none; border-radius: 6px; cursor: pointer; font-size: 13px; font-weight: 600; transition: all 0.2s; }
+.btn-copy { background: #3b82f6; color: white; }
+.btn-copy:hover { background: #2563eb; }
+.btn-done { background: #22c55e; color: white; }
+.btn-done:hover { background: #16a34a; }
+.btn-skip { background: #6b7280; color: white; }
+.btn-skip:hover { background: #4b5563; }
+.btn-export { background: #f59e0b; color: #000; padding: 12px 24px; font-size: 16px; display: block; margin: 20px auto; }
+.btn-export:hover { background: #d97706; }
+.status { display: inline-block; margin-left: 10px; font-size: 12px; padding: 2px 8px; border-radius: 4px; }
+.status-pending { background: #374151; color: #9ca3af; }
+.status-done { background: #166534; color: #4ade80; }
+.instructions { max-width: 900px; margin: 0 auto 20px; background: #16213e; border-radius: 12px; padding: 16px 20px; border: 1px solid #333; font-size: 14px; line-height: 1.6; }
+.instructions h3 { color: #60a5fa; margin-bottom: 8px; }
+.instructions ol { padding-left: 20px; }
+.instructions li { margin-bottom: 4px; }
+</style>
+</head>
+<body>
+<h1>📝 Paper Humanizer Helper</h1>
+<p class="subtitle">23 chunks from your research paper — copy each to HumanizeAI.pro, paste results back</p>
+
+<div class="instructions">
+<h3>Workflow (keep HumanizeAI.pro open in another tab)</h3>
+<ol>
+<li>Click <b>Copy</b> on a chunk → it copies the plain text to your clipboard</li>
+<li>Switch to HumanizeAI.pro tab → paste → click Humanize</li>
+<li>Copy the result from HumanizeAI.pro</li>
+<li>Come back here → paste into the <b>Humanized Result</b> box → click <b>Done</b></li>
+<li>Repeat for all chunks. When finished, click <b>Export All Results</b></li>
+</ol>
+</div>
+
+<div class="progress">
+    <span class="done" id="doneCount">0</span> / <span class="total">23</span> chunks completed
+</div>
+
+<div class="chunk-container" id="chunks">
+
+<div class="chunk" id="chunk-1" data-id="1">
+    <div class="chunk-header">
+        <span class="chunk-id">Chunk 1</span>
+        <span class="chunk-section">Abstract (1/2)</span>
+        <span class="chunk-words">118 words</span>
+        <span class="status status-pending" id="status-1">Pending</span>
+    </div>
+    <label>Original text (click Copy to copy)</label>
+    <textarea class="text-box" id="orig-1" readonly rows="3">Schedulers like FCFS, Round Robin, and Linux's CFS keep the CPU busy, but
+none of them really try to stop low-priority processes from starving. We
+built a system—GraphSAGE + MaskablePPO—that goes after both throughput
+and fairness at once. Every tick, it throws out the old graph and builds a
+fresh one that captures which processes are fighting for the CPU, which share
+a priority class, and which have had similar burst patterns
+lately. GraphSAGE reads the graph; a masked
+PPO agent picks the next process to run. We also shaped
+the reward so that ignoring a hungry process gets more and more expensive
+once its wait crosses a threshold—the agent essentially teaches itself not
+to let anything starve.</textarea>
+    <label>Humanized result (paste from HumanizeAI.pro)</label>
+    <textarea class="text-box" id="result-1" rows="3" placeholder="Paste the humanized text here..."></textarea>
+    <div class="btn-row">
+        <button class="btn btn-copy" onclick="copyChunk(1)">📋 Copy Original</button>
+        <button class="btn btn-done" onclick="markDone(1)">✅ Done</button>
+        <button class="btn btn-skip" onclick="markSkip(1)">⏭ Skip (keep original)</button>
+    </div>
+</div>
+
+<div class="chunk" id="chunk-2" data-id="2">
+    <div class="chunk-header">
+        <span class="chunk-id">Chunk 2</span>
+        <span class="chunk-section">Abstract (2/2)</span>
+        <span class="chunk-words">73 words</span>
+        <span class="status status-pending" id="status-2">Pending</span>
+    </div>
+    <label>Original text (click Copy to copy)</label>
+    <textarea class="text-box" id="orig-2" readonly rows="3">We tested on 500 seeded episodes with bootstrap CIs. Against
+CFS, average wait drops 23.7 \% and starvation falls
+by 24.4 pp on uniform workloads. With exponential bursts the throughput
+edge mostly vanishes, but starvation still comes down 11.5 pp. Perhaps the
+most surprising result: without the graph, a flat-MLP agent cannot
+significantly beat CFS on realistic workloads at all. The relational
+structure turns out to be what makes the RL approach work.</textarea>
+    <label>Humanized result (paste from HumanizeAI.pro)</label>
+    <textarea class="text-box" id="result-2" rows="3" placeholder="Paste the humanized text here..."></textarea>
+    <div class="btn-row">
+        <button class="btn btn-copy" onclick="copyChunk(2)">📋 Copy Original</button>
+        <button class="btn btn-done" onclick="markDone(2)">✅ Done</button>
+        <button class="btn btn-skip" onclick="markSkip(2)">⏭ Skip (keep original)</button>
+    </div>
+</div>
+
+<div class="chunk" id="chunk-3" data-id="3">
+    <div class="chunk-header">
+        <span class="chunk-id">Chunk 3</span>
+        <span class="chunk-section">Introduction (1)</span>
+        <span class="chunk-words">115 words</span>
+        <span class="status status-pending" id="status-3">Pending</span>
+    </div>
+    <label>Original text (click Copy to copy)</label>
+    <textarea class="text-box" id="orig-3" readonly rows="3">CPU scheduling has been studied extensively, yet the core problem persists.
+SRTF is provably the best you can do for average wait—but it needs to
+know how long each burst will last before it happens, which no real
+scheduler can. So in practice we get heuristics. CFS
+is arguably the strongest: it tracks a virtual runtime per process, always
+picking whichever one has used the least CPU time (weighted by nice value).
+CFS is fast, elegant, and surprisingly hard to beat. But it has a blind
+spot. Nothing in CFS says ``this process has been sitting here too long, run
+it.'' Priority aging shows up in
+textbooks, , sure—but CFS
+does not actually use it.</textarea>
+    <label>Humanized result (paste from HumanizeAI.pro)</label>
+    <textarea class="text-box" id="result-3" rows="3" placeholder="Paste the humanized text here..."></textarea>
+    <div class="btn-row">
+        <button class="btn btn-copy" onclick="copyChunk(3)">📋 Copy Original</button>
+        <button class="btn btn-done" onclick="markDone(3)">✅ Done</button>
+        <button class="btn btn-skip" onclick="markSkip(3)">⏭ Skip (keep original)</button>
+    </div>
+</div>
+
+<div class="chunk" id="chunk-4" data-id="4">
+    <div class="chunk-header">
+        <span class="chunk-id">Chunk 4</span>
+        <span class="chunk-section">Introduction (2)</span>
+        <span class="chunk-words">167 words</span>
+        <span class="status status-pending" id="status-4">Pending</span>
+    </div>
+    <label>Original text (click Copy to copy)</label>
+    <textarea class="text-box" id="orig-4" readonly rows="3">Recent advances in deep reinforcement learning have demonstrated promising
+results for resource scheduling at the cluster and job
+levels—DeepRM for cluster resource allocation,
+Decima for Spark job DAGs, and
+RLScheduler for HPC batch queues. However, these
+systems operate at a considerably coarser granularity than per-timeslice CPU
+dispatch. To the best of our knowledge, no prior work has combined a graph
+neural network with action masking and a fairness-aware reward for
+per-process OS-level scheduling.
+
+This paper addresses that gap with three contributions:
+
+A dynamic process graph reconstructed at every scheduling tick from
+observable process features, encoding contention, type similarity, and
+burst-history similarity relationships.
+A GraphSAGE-based feature extractor integrated with MaskablePPO.
+GraphSAGE is specifically suited to this
+setting, as it was designed for graphs whose topology changes between
+forward passes—processes arrive, block on I/O, resume, and terminate
+during execution.
+A soft-priority aging reward that formalises the textbook concept of
+priority aging as an RL training signal, enabling the policy to learn
+anti-starvation behaviour from reward shaping alone.
+
+% ———————————————————————</textarea>
+    <label>Humanized result (paste from HumanizeAI.pro)</label>
+    <textarea class="text-box" id="result-4" rows="3" placeholder="Paste the humanized text here..."></textarea>
+    <div class="btn-row">
+        <button class="btn btn-copy" onclick="copyChunk(4)">📋 Copy Original</button>
+        <button class="btn btn-done" onclick="markDone(4)">✅ Done</button>
+        <button class="btn btn-skip" onclick="markSkip(4)">⏭ Skip (keep original)</button>
+    </div>
+</div>
+
+<div class="chunk" id="chunk-5" data-id="5">
+    <div class="chunk-header">
+        <span class="chunk-id">Chunk 5</span>
+        <span class="chunk-section">Related Work (1)</span>
+        <span class="chunk-words">178 words</span>
+        <span class="status status-pending" id="status-5">Pending</span>
+    </div>
+    <label>Original text (click Copy to copy)</label>
+    <textarea class="text-box" id="orig-5" readonly rows="3">DeepRM initiated the deep-RL-for-scheduling paradigm by
+training a REINFORCE policy over a two-dimensional image representation of
+cluster resources. RLScheduler extended this
+approach with per-job feature vectors and PPO, matching HPC heuristics across
+six real workload traces. Neither system operates at the OS process level,
+nor does either incorporate graph structure or fairness objectives in the
+reward.
+
+Decima is the most closely related graph-based
+scheduler: it applies a custom GNN to static Spark DAGs and achieves a
+21 \
+a fixed dependency DAG that changes only upon job arrival; ours is rebuilt
+at every tick. Decima has no action masking either, and it does not handle priorities.
+L2D applied GIN to manufacturing job-shop scheduling, and
+a recent survey confirmed that GCN, GIN, and
+GAT dominate the scheduling literature—GraphSAGE has not previously
+appeared in any scheduling domain. Adimora et al. ran Graph Attention Networks over
+377K real supercomputer jobs and made the case that inductive GNNs matter
+when queue sizes keep changing. We are after essentially the same thing, but
+at a much finer grain—individual timeslices rather than batch jobs.</textarea>
+    <label>Humanized result (paste from HumanizeAI.pro)</label>
+    <textarea class="text-box" id="result-5" rows="3" placeholder="Paste the humanized text here..."></textarea>
+    <div class="btn-row">
+        <button class="btn btn-copy" onclick="copyChunk(5)">📋 Copy Original</button>
+        <button class="btn btn-done" onclick="markDone(5)">✅ Done</button>
+        <button class="btn btn-skip" onclick="markSkip(5)">⏭ Skip (keep original)</button>
+    </div>
+</div>
+
+<div class="chunk" id="chunk-6" data-id="6">
+    <div class="chunk-header">
+        <span class="chunk-id">Chunk 6</span>
+        <span class="chunk-section">Related Work (2)</span>
+        <span class="chunk-words">98 words</span>
+        <span class="status status-pending" id="status-6">Pending</span>
+    </div>
+    <label>Original text (click Copy to copy)</label>
+    <textarea class="text-box" id="orig-6" readonly rows="3">On the masking side, Huang and Onta\ n\'on showed
+that clamping illegal logits to - converges 57 faster than
+penalty tricks. Lassoued et al. took
+MaskablePPO into job-shop scheduling with Petri-net masks—probably the
+closest existing work to ours, though they had no GNN, stayed outside the
+CPU domain, and only ran 100 evaluation episodes.
+
+On the fairness front, we could not find a single RL scheduler that
+actually learns aging from its reward signal. One GPU cluster
+paper hard-codes an aging heuristic;
+STUN uses tabular Q-learning to tweak CFS knobs
+globally. Neither one dispatches individual processes.
+
+% ———————————————————————</textarea>
+    <label>Humanized result (paste from HumanizeAI.pro)</label>
+    <textarea class="text-box" id="result-6" rows="3" placeholder="Paste the humanized text here..."></textarea>
+    <div class="btn-row">
+        <button class="btn btn-copy" onclick="copyChunk(6)">📋 Copy Original</button>
+        <button class="btn btn-done" onclick="markDone(6)">✅ Done</button>
+        <button class="btn btn-skip" onclick="markSkip(6)">⏭ Skip (keep original)</button>
+    </div>
+</div>
+
+<div class="chunk" id="chunk-7" data-id="7">
+    <div class="chunk-header">
+        <span class="chunk-id">Chunk 7</span>
+        <span class="chunk-section">Environment</span>
+        <span class="chunk-words">130 words</span>
+        <span class="status status-pending" id="status-7">Pending</span>
+    </div>
+    <label>Original text (click Copy to copy)</label>
+    <textarea class="text-box" id="orig-7" readonly rows="3">The environment simulates a single-CPU system with up to eight concurrent
+processes. Each process alternates between CPU
+bursts and I/O waits. The scheduler observes all information available to a
+real OS dispatcher—waiting time, process type, CPU utilisation, recent
+burst history—but has no access to future burst lengths, preserving the
+causal constraint inherent in real scheduling.
+
+Each process slot contributes 8 features to a flat 64-dimensional
+observation vector:
+\[
+o_i = [ w_i,\ _i,\ u_i,\ s_i,\ _i,\ b_i,\ r_i,\ d_i ]
+\]
+representing waiting time, type, CPU used, schedule count, last and average
+burst length, ready flag, and blocked time, respectively. The action space is
+Discrete(N_{}{+}1): the agent selects a process to dispatch or
+idles. Invalid actions (selecting a terminated or I/O-blocked process) are
+masked to - prior to the softmax.</textarea>
+    <label>Humanized result (paste from HumanizeAI.pro)</label>
+    <textarea class="text-box" id="result-7" rows="3" placeholder="Paste the humanized text here..."></textarea>
+    <div class="btn-row">
+        <button class="btn btn-copy" onclick="copyChunk(7)">📋 Copy Original</button>
+        <button class="btn btn-done" onclick="markDone(7)">✅ Done</button>
+        <button class="btn btn-skip" onclick="markSkip(7)">⏭ Skip (keep original)</button>
+    </div>
+</div>
+
+<div class="chunk" id="chunk-8" data-id="8">
+    <div class="chunk-header">
+        <span class="chunk-id">Chunk 8</span>
+        <span class="chunk-section">Reward Function</span>
+        <span class="chunk-words">111 words</span>
+        <span class="status status-pending" id="status-8">Pending</span>
+    </div>
+    <label>Original text (click Copy to copy)</label>
+    <textarea class="text-box" id="orig-8" readonly rows="3">Every tick, the agent pays a cost for every ready process it did not
+pick, weighted by that process's type. On top of that, once any process has
+been waiting longer than a threshold W^{*}, an extra penalty kicks in and
+grows linearly with the overshoot:
+equation
+r_t = -\!\!_{i a_t,\; i\ ready}
+[ w_{_i} + (0,\; W_i - W^{*}) ]
+eq:reward
+equation
+We set = 0.5 and W^{*} = 10 throughout. The practical effect is
+straightforward: letting a hungry process sit there gets more expensive with
+every tick, so the agent learns to attend to it—not because we wrote a
+scheduling rule, but because the reward pushes it that way.</textarea>
+    <label>Humanized result (paste from HumanizeAI.pro)</label>
+    <textarea class="text-box" id="result-8" rows="3" placeholder="Paste the humanized text here..."></textarea>
+    <div class="btn-row">
+        <button class="btn btn-copy" onclick="copyChunk(8)">📋 Copy Original</button>
+        <button class="btn btn-done" onclick="markDone(8)">✅ Done</button>
+        <button class="btn btn-skip" onclick="markSkip(8)">⏭ Skip (keep original)</button>
+    </div>
+</div>
+
+<div class="chunk" id="chunk-9" data-id="9">
+    <div class="chunk-header">
+        <span class="chunk-id">Chunk 9</span>
+        <span class="chunk-section">Dynamic Process Graph</span>
+        <span class="chunk-words">135 words</span>
+        <span class="status status-pending" id="status-9">Pending</span>
+    </div>
+    <label>Original text (click Copy to copy)</label>
+    <textarea class="text-box" id="orig-9" readonly rows="3">We throw the graph away and rebuild it from scratch every single tick.
+Processes become nodes; edges come in three flavours:
+
+CPU Contention. If two processes are both sitting in the
+ready queue, they get an edge. This is the most obvious relationship—they
+are directly competing for the CPU right now.
+Type Similarity. Same priority class (_i = _j)
+means an edge. The idea is to let the policy reason about groups of
+processes, not just individuals.
+Burst-History Similarity. An edge appears whenever two
+processes have average burst lengths within one tick of each other
+(|b_i - b_j| 1). This turned out to matter quite a
+bit—it gives the policy a rough hint about which processes behave alike,
+all without revealing any future burst information.
+
+All edges include self-loops. No state carries over between ticks.</textarea>
+    <label>Humanized result (paste from HumanizeAI.pro)</label>
+    <textarea class="text-box" id="result-9" rows="3" placeholder="Paste the humanized text here..."></textarea>
+    <div class="btn-row">
+        <button class="btn btn-copy" onclick="copyChunk(9)">📋 Copy Original</button>
+        <button class="btn btn-done" onclick="markDone(9)">✅ Done</button>
+        <button class="btn btn-skip" onclick="markSkip(9)">⏭ Skip (keep original)</button>
+    </div>
+</div>
+
+<div class="chunk" id="chunk-10" data-id="10">
+    <div class="chunk-header">
+        <span class="chunk-id">Chunk 10</span>
+        <span class="chunk-section">GraphSAGE Feature Extractor (1)</span>
+        <span class="chunk-words">73 words</span>
+        <span class="status status-pending" id="status-10">Pending</span>
+    </div>
+    <label>Original text (click Copy to copy)</label>
+    <textarea class="text-box" id="orig-10" readonly rows="3">Two GraphSAGE layers perform neighbourhood aggregation via mean-pooling
+across two rounds of message passing:
+align
+h_i^{(1)} &= ReLU(W_1 [ x_i {x}_{N(i)} ]) eq:sage1\\
+h_i^{(2)} &= ReLU(W_2 [ h_i^{(1)} {h}^{(1)}_{N(i)} ]) eq:sage2
+align
+where W_1 R^{32 20} and W_2 R^{16 64}.
+The 8 node embeddings are concatenated and projected to a 48-dimensional
+vector, which feeds a standard PPO actor-critic network with two hidden
+layers of 64 units each. Fig. fig:arch illustrates the complete
+pipeline.</textarea>
+    <label>Humanized result (paste from HumanizeAI.pro)</label>
+    <textarea class="text-box" id="result-10" rows="3" placeholder="Paste the humanized text here..."></textarea>
+    <div class="btn-row">
+        <button class="btn btn-copy" onclick="copyChunk(10)">📋 Copy Original</button>
+        <button class="btn btn-done" onclick="markDone(10)">✅ Done</button>
+        <button class="btn btn-skip" onclick="markSkip(10)">⏭ Skip (keep original)</button>
+    </div>
+</div>
+
+<div class="chunk" id="chunk-11" data-id="11">
+    <div class="chunk-header">
+        <span class="chunk-id">Chunk 11</span>
+        <span class="chunk-section">GraphSAGE Feature Extractor (2)</span>
+        <span class="chunk-words">167 words</span>
+        <span class="status status-pending" id="status-11">Pending</span>
+    </div>
+    <label>Original text (click Copy to copy)</label>
+    <textarea class="text-box" id="orig-11" readonly rows="3">figure[t]
+
+tikzpicture[
+ font=,
+ box/.style={draw, rounded corners=2pt, align=center, minimum width=2.5cm,
+ minimum height=0.85cm, line width=0.5pt},
+ arr/.style={-{Stealth[length=2mm]}, line width=0.5pt},
+ node distance=0.42cm]
+cObs{HTML}{E3E6F8}
+cGraph{HTML}{FDEBD3}
+cSage{HTML}{DFF2DC}
+cProj{HTML}{F7E3EA}
+cActor{HTML}{FCE3E6}
+cCritic{HTML}{E6E6E6}
+cMask{HTML}{FBF5D3}
+[box, fill=cObs] (obs) {Observation\\[-1pt]R^{64}};
+[box, fill=cGraph, below=of obs] (gb) {Graph Builder\\[-1pt]G_t{=}(V,E)};
+[box, fill=cSage, below=of gb] (sage) {GraphSAGE\\[-1pt] 2 layers};
+[box, fill=cProj, below=of sage] (proj) {Projection\\[-1pt]R^{48}};
+[box, fill=cActor, below left=0.55cm and -0.6cm of proj] (actor) {Actor\\[-1pt]MLP};
+[box, fill=cCritic,below right=0.55cm and -0.6cm of proj] (critic) {Critic\\[-1pt]MLP};
+[box, fill=cMask, below=of actor] (mask) {Action Mask\\[-1pt]\{-, 0\}^{9}};
+[box, fill=cActor, below=of mask, minimum height=0.6cm] (pi) {(a | s)};
+[box, fill=cCritic,below=of critic, minimum height=0.6cm] (v) {V(s)};
+[arr] (obs) – (gb);
+[arr] (gb) – (sage);
+[arr] (sage) – (proj);
+ (split) at ((proj.south)+(0,-0.25));
+[line width=0.5pt] (proj.south) – (split);
+[arr] (split) -| (actor.north);
+[arr] (split) -| (critic.north);
+[arr] (actor) – (mask);
+[arr] (mask) – (pi);
+[arr] (critic) – (v);
+tikzpicture
+End-to-end architecture of the proposed GraphSAGE + MaskablePPO
+framework. The process graph is reconstructed at every tick from observable
+features. Invalid actions are masked prior to the softmax.
+fig:arch
+figure
+
+% ———————————————————————</textarea>
+    <label>Humanized result (paste from HumanizeAI.pro)</label>
+    <textarea class="text-box" id="result-11" rows="3" placeholder="Paste the humanized text here..."></textarea>
+    <div class="btn-row">
+        <button class="btn btn-copy" onclick="copyChunk(11)">📋 Copy Original</button>
+        <button class="btn btn-done" onclick="markDone(11)">✅ Done</button>
+        <button class="btn btn-skip" onclick="markSkip(11)">⏭ Skip (keep original)</button>
+    </div>
+</div>
+
+<div class="chunk" id="chunk-12" data-id="12">
+    <div class="chunk-header">
+        <span class="chunk-id">Chunk 12</span>
+        <span class="chunk-section">Experimental Setup (1)</span>
+        <span class="chunk-words">131 words</span>
+        <span class="status status-pending" id="status-12">Pending</span>
+    </div>
+    <label>Original text (click Copy to copy)</label>
+    <textarea class="text-box" id="orig-12" readonly rows="3">Uniform workloads. CPU and I/O burst lengths are sampled from
+U\{1,5\}, burst counts from U\{2,4\}, and process
+types are assigned uniformly at random. Seeds 10 000–10 499
+(500 episodes).
+
+Realistic workloads. Exponential distributions with type-specific
+means derived from the Coffman–Kleinrock model
+and standard OS textbook parameters: SYSTEM
+(_{cpu}{=}2.5, _{io}{=}2.0), INTERACTIVE
+(_{cpu}{=}4.0, _{io}{=}5.0), BACKGROUND
+(_{cpu}{=}8.0, _{io}{=}2.0). Type distribution:
+20/50/30 \
+
+Baselines. Six classical schedulers are evaluated: FCFS, Round
+Robin (q{=}2), Priority + Aging, MLFQ (quanta
+2/4/8), CFS, and Stride. A
+flat-MLP MaskablePPO ablation (no graph) is included to isolate the
+contribution of the graph representation. SRTF with oracle access to future
+burst lengths serves as a theoretical upper bound.
+
+Training. 150 000 timesteps, learning rate 3{}10^{-4},
+n_{steps}{=}2048, clip ratio =0.2. Multi-seed
+evaluation: 5 training seeds 500 test workloads with bootstrap
+95 \</textarea>
+    <label>Humanized result (paste from HumanizeAI.pro)</label>
+    <textarea class="text-box" id="result-12" rows="3" placeholder="Paste the humanized text here..."></textarea>
+    <div class="btn-row">
+        <button class="btn btn-copy" onclick="copyChunk(12)">📋 Copy Original</button>
+        <button class="btn btn-done" onclick="markDone(12)">✅ Done</button>
+        <button class="btn btn-skip" onclick="markSkip(12)">⏭ Skip (keep original)</button>
+    </div>
+</div>
+
+<div class="chunk" id="chunk-13" data-id="13">
+    <div class="chunk-header">
+        <span class="chunk-id">Chunk 13</span>
+        <span class="chunk-section">Experimental Setup (2)</span>
+        <span class="chunk-words">102 words</span>
+        <span class="status status-pending" id="status-13">Pending</span>
+    </div>
+    <label>Original text (click Copy to copy)</label>
+    <textarea class="text-box" id="orig-13" readonly rows="3">table[t]
+
+
+Full benchmark across 500 seeded episodes. ^{ denotes
+oracle access to hidden future burst lengths (theoretical bound, not a fair
+comparison).}
+tab:benchmark
+{3pt}
+tabular{@{}lcccc@{}}
+
+2{*}{Scheduler} & 2{c}{Uniform} & 2{c}{Realistic}\\
+(lr){2-3}(l){4-5}
+ & Avg Wait & Starv. & Avg Wait & Starv.\\
+
+FCFS & 23.91 & 88.5 \
+Round Robin & 24.70 & 89.1 \
+Priority + Aging& 24.78 & 90.4 \
+MLFQ & 24.85 & 90.2 \
+CFS & 24.31 & 87.3 \
+Stride & 24.30 & 87.3 \
+
+Plain MaskablePPO & 19.30 & 65.4 \
+GraphSAGE + MaskablePPO & 18.54 & 62.9 \
+
+SRTF^{} & 14.49 & 53.1 \
+
+tabular
+table</textarea>
+    <label>Humanized result (paste from HumanizeAI.pro)</label>
+    <textarea class="text-box" id="result-13" rows="3" placeholder="Paste the humanized text here..."></textarea>
+    <div class="btn-row">
+        <button class="btn btn-copy" onclick="copyChunk(13)">📋 Copy Original</button>
+        <button class="btn btn-done" onclick="markDone(13)">✅ Done</button>
+        <button class="btn btn-skip" onclick="markSkip(13)">⏭ Skip (keep original)</button>
+    </div>
+</div>
+
+<div class="chunk" id="chunk-14" data-id="14">
+    <div class="chunk-header">
+        <span class="chunk-id">Chunk 14</span>
+        <span class="chunk-section">Experimental Setup (3)</span>
+        <span class="chunk-words">97 words</span>
+        <span class="status status-pending" id="status-14">Pending</span>
+    </div>
+    <label>Original text (click Copy to copy)</label>
+    <textarea class="text-box" id="orig-14" readonly rows="3">table[t]
+
+
+Breaking down who contributes what. = paired mean
+difference (negative is better). { means the 95 \
+excludes zero.}
+tab:decomp
+{3.2pt}
+tabular{@{}llcccc@{}}
+
+WL & Transition & Avg & 95 \
+
+3{*}{Unif.}
+ & Classical flat & -4.6 & [-5.0, -4.2] & 49\
+ & RL flat+Graph & -0.8 & [-1.0, -0.5] & 8\
+ & RL+Graph & -4.1 & [-4.3, -3.8] & 43\
+
+3{*}{Real.}
+ & Classical flat & +0.6 & [-0.3, +1.4] & n/a & \\
+ & RL flat+Graph & -0.7 & [-1.4, -0.1] & 7\
+ & RL+Graph & -10.9 & [-11.9, -10.0] & 99\
+
+tabular
+table
+
+% ———————————————————————</textarea>
+    <label>Humanized result (paste from HumanizeAI.pro)</label>
+    <textarea class="text-box" id="result-14" rows="3" placeholder="Paste the humanized text here..."></textarea>
+    <div class="btn-row">
+        <button class="btn btn-copy" onclick="copyChunk(14)">📋 Copy Original</button>
+        <button class="btn btn-done" onclick="markDone(14)">✅ Done</button>
+        <button class="btn btn-skip" onclick="markSkip(14)">⏭ Skip (keep original)</button>
+    </div>
+</div>
+
+<div class="chunk" id="chunk-15" data-id="15">
+    <div class="chunk-header">
+        <span class="chunk-id">Chunk 15</span>
+        <span class="chunk-section">Full Benchmark</span>
+        <span class="chunk-words">87 words</span>
+        <span class="status status-pending" id="status-15">Pending</span>
+    </div>
+    <label>Original text (click Copy to copy)</label>
+    <textarea class="text-box" id="orig-15" readonly rows="3">Table tab:benchmark has the numbers. On uniform workloads our model
+hits 18.54 average wait (95 \
+CFS—a 23.7 \
+is 24.4 percentage points. Pretty much everything we tried beats FCFS and
+Round Robin handily, but pulling ahead of CFS by this margin was the real
+test.
+
+Realistic workloads tell a more nuanced story. The wait-time gap between us
+and CFS shrinks to roughly 1.2 \
+on throughput. But starvation is still 11.5 percentage points lower
+(67.7 \
+bursts are exponential; fairness is where our approach actually shines.</textarea>
+    <label>Humanized result (paste from HumanizeAI.pro)</label>
+    <textarea class="text-box" id="result-15" rows="3" placeholder="Paste the humanized text here..."></textarea>
+    <div class="btn-row">
+        <button class="btn btn-copy" onclick="copyChunk(15)">📋 Copy Original</button>
+        <button class="btn btn-done" onclick="markDone(15)">✅ Done</button>
+        <button class="btn btn-skip" onclick="markSkip(15)">⏭ Skip (keep original)</button>
+    </div>
+</div>
+
+<div class="chunk" id="chunk-16" data-id="16">
+    <div class="chunk-header">
+        <span class="chunk-id">Chunk 16</span>
+        <span class="chunk-section">Contribution Decomposition</span>
+        <span class="chunk-words">110 words</span>
+        <span class="status status-pending" id="status-16">Pending</span>
+    </div>
+    <label>Original text (click Copy to copy)</label>
+    <textarea class="text-box" id="orig-16" readonly rows="3">The paired ablation (Table tab:decomp) is where things get
+interesting. We ran the exact same 500 workloads through both agents and
+took paired differences with bootstrap resampling.
+
+On uniform workloads the picture is clear: RL by itself closes roughly half
+the gap to the SRTF oracle (49 \
+8 \
+
+The realistic-workload result caught us off guard. Without the graph, the
+flat-MLP agent actually does a hair worse than CFS (paired diff
++0.6; the CI straddles zero). Add the graph and the sign flips:
+-0.7, CI excludes zero. Put bluntly, on the harder workloads the graph is
+not just helpful—without it, there is no significant improvement over CFS
+at all.</textarea>
+    <label>Humanized result (paste from HumanizeAI.pro)</label>
+    <textarea class="text-box" id="result-16" rows="3" placeholder="Paste the humanized text here..."></textarea>
+    <div class="btn-row">
+        <button class="btn btn-copy" onclick="copyChunk(16)">📋 Copy Original</button>
+        <button class="btn btn-done" onclick="markDone(16)">✅ Done</button>
+        <button class="btn btn-skip" onclick="markSkip(16)">⏭ Skip (keep original)</button>
+    </div>
+</div>
+
+<div class="chunk" id="chunk-17" data-id="17">
+    <div class="chunk-header">
+        <span class="chunk-id">Chunk 17</span>
+        <span class="chunk-section">Multi-Seed Robustness</span>
+        <span class="chunk-words">37 words</span>
+        <span class="status status-pending" id="status-17">Pending</span>
+    </div>
+    <label>Original text (click Copy to copy)</label>
+    <textarea class="text-box" id="orig-17" readonly rows="3">We trained five separate models from different random seeds and tested each
+on 500 workloads. The paired gap between GraphSAGE and the flat MLP comes
+out to -0.67 ticks (95 \
+reproducible every single time (Table tab:multiseed).</textarea>
+    <label>Humanized result (paste from HumanizeAI.pro)</label>
+    <textarea class="text-box" id="result-17" rows="3" placeholder="Paste the humanized text here..."></textarea>
+    <div class="btn-row">
+        <button class="btn btn-copy" onclick="copyChunk(17)">📋 Copy Original</button>
+        <button class="btn btn-done" onclick="markDone(17)">✅ Done</button>
+        <button class="btn btn-skip" onclick="markSkip(17)">⏭ Skip (keep original)</button>
+    </div>
+</div>
+
+<div class="chunk" id="chunk-18" data-id="18">
+    <div class="chunk-header">
+        <span class="chunk-id">Chunk 18</span>
+        <span class="chunk-section">Visualisation (1)</span>
+        <span class="chunk-words">181 words</span>
+        <span class="status status-pending" id="status-18">Pending</span>
+    </div>
+    <label>Original text (click Copy to copy)</label>
+    <textarea class="text-box" id="orig-18" readonly rows="3">An interactive Streamlit dashboard was developed for qualitative inspection
+of scheduling behaviour. Fig. fig:dash displays the per-process state
+table and Gantt timeline; Fig. fig:graph visualises the dynamic
+process graph with all three edge families.
+
+figure*[!t]
+
+[width=0.82]{fig2a_avg_wait.png}\\[4pt]
+[width=0.82]{fig2b_starvation.png}
+Top: average waiting time across all schedulers (500 episodes,
+bootstrap 95 \
+blue dotted line. The proposed model achieves the lowest non-oracle waiting
+time on uniform workloads and reduces starvation by 24.4 pp (uniform) and
+11.5 pp (realistic) relative to CFS. SRTF utilises hidden burst lengths
+and serves as a theoretical lower bound.
+fig:bench
+figure*
+
+table[t]
+
+
+Multi-seed evaluation (5 training seeds 500 workloads).
+tab:multiseed
+tabular{@{}lcc@{}}
+
+Model & Avg Wait & 95 \
+
+Plain MaskablePPO & 21.62 & [21.20, 22.06]\\
+GraphSAGE + MaskablePPO & 20.96 & [20.86, 21.07]\\
+
+Paired diff.\ (G-P) & -0.67 & [-1.12, -0.26]\\
+
+tabular
+table
+
+figure[t]
+
+[width=]{fig3_dashboard_state.png}
+Dashboard view of GraphSAGE + MaskablePPO on seed 42 with 5
+processes. Left: per-process scheduling state. Right: Gantt timeline
+spanning 60 ticks. P2 (SYSTEM) accumulates the highest waiting time due to
+repeated I/O blocking; P4 (BACKGROUND) receives priority upon exceeding the
+aging threshold.
+fig:dash
+figure</textarea>
+    <label>Humanized result (paste from HumanizeAI.pro)</label>
+    <textarea class="text-box" id="result-18" rows="3" placeholder="Paste the humanized text here..."></textarea>
+    <div class="btn-row">
+        <button class="btn btn-copy" onclick="copyChunk(18)">📋 Copy Original</button>
+        <button class="btn btn-done" onclick="markDone(18)">✅ Done</button>
+        <button class="btn btn-skip" onclick="markSkip(18)">⏭ Skip (keep original)</button>
+    </div>
+</div>
+
+<div class="chunk" id="chunk-19" data-id="19">
+    <div class="chunk-header">
+        <span class="chunk-id">Chunk 19</span>
+        <span class="chunk-section">Visualisation (2)</span>
+        <span class="chunk-words">87 words</span>
+        <span class="status status-pending" id="status-19">Pending</span>
+    </div>
+    <label>Original text (click Copy to copy)</label>
+    <textarea class="text-box" id="orig-19" readonly rows="3">figure[t]
+
+[width=]{fig4_process_graph.png}
+Dynamic process graph as rendered in the dashboard. Three edge
+families are shown: CPU contention (solid), type similarity (dashed), and
+burst-history similarity (dotted). The graph is reconstructed at every tick
+and aggregated by GraphSAGE into a 48-dimensional policy input.
+fig:graph
+figure
+
+figure[t]
+
+[width=]{fig5_decomposition.png}
+Contribution decomposition (Classical RL RL+Graph
+ SRTF). Solid bars: average waiting time. Hatched bars: starvation
+rate. On realistic workloads, RL alone does not significantly outperform CFS
+(+0.6, n.s.), but the addition of the graph yields a significant
+improvement (-0.7).
+fig:decomp
+figure
+
+% ———————————————————————</textarea>
+    <label>Humanized result (paste from HumanizeAI.pro)</label>
+    <textarea class="text-box" id="result-19" rows="3" placeholder="Paste the humanized text here..."></textarea>
+    <div class="btn-row">
+        <button class="btn btn-copy" onclick="copyChunk(19)">📋 Copy Original</button>
+        <button class="btn btn-done" onclick="markDone(19)">✅ Done</button>
+        <button class="btn btn-skip" onclick="markSkip(19)">⏭ Skip (keep original)</button>
+    </div>
+</div>
+
+<div class="chunk" id="chunk-20" data-id="20">
+    <div class="chunk-header">
+        <span class="chunk-id">Chunk 20</span>
+        <span class="chunk-section">Discussion (1)</span>
+        <span class="chunk-words">151 words</span>
+        <span class="status status-pending" id="status-20">Pending</span>
+    </div>
+    <label>Original text (click Copy to copy)</label>
+    <textarea class="text-box" id="orig-20" readonly rows="3">CFS turned out to be a tougher opponent than we expected on realistic
+workloads. Its virtual-runtime weighting already handles heterogeneous
+exponential bursts pretty well, and a flat MLP simply cannot find extra
+leverage. What the graph adds is relational context: by looking at
+burst-history edges, the policy picks up on groups of processes that have
+been behaving alike—and uses that as a rough stand-in for predicting which
+ones will finish quickly. It amounts to a learned, approximate version of
+SRTF-style reasoning, built from observable history instead of hidden future
+information.
+
+The remaining 10.91-tick gap to SRTF on realistic workloads is, we believe,
+mostly information-theoretic. Exponential distributions have a CV of exactly
+1.0; the next burst could easily be several times longer or shorter than the
+average. No policy that cannot peek at the future can close that gap. On
+uniform workloads, where variance is lower, the gap shrinks to 4.05 ticks.</textarea>
+    <label>Humanized result (paste from HumanizeAI.pro)</label>
+    <textarea class="text-box" id="result-20" rows="3" placeholder="Paste the humanized text here..."></textarea>
+    <div class="btn-row">
+        <button class="btn btn-copy" onclick="copyChunk(20)">📋 Copy Original</button>
+        <button class="btn btn-done" onclick="markDone(20)">✅ Done</button>
+        <button class="btn btn-skip" onclick="markSkip(20)">⏭ Skip (keep original)</button>
+    </div>
+</div>
+
+<div class="chunk" id="chunk-21" data-id="21">
+    <div class="chunk-header">
+        <span class="chunk-id">Chunk 21</span>
+        <span class="chunk-section">Discussion (2)</span>
+        <span class="chunk-words">65 words</span>
+        <span class="status status-pending" id="status-21">Pending</span>
+    </div>
+    <label>Original text (click Copy to copy)</label>
+    <textarea class="text-box" id="orig-21" readonly rows="3">If we had to pick one takeaway, it would be the starvation numbers.
+Across every condition we tested, 12–24 percentage points fewer processes
+starve compared to CFS. The aging penalty (Eq. eq:reward) gives the
+policy a strong push to attend to processes that have been waiting too long.
+As far as we can tell, no other RL scheduler learns anti-starvation
+behaviour purely from reward shaping.</textarea>
+    <label>Humanized result (paste from HumanizeAI.pro)</label>
+    <textarea class="text-box" id="result-21" rows="3" placeholder="Paste the humanized text here..."></textarea>
+    <div class="btn-row">
+        <button class="btn btn-copy" onclick="copyChunk(21)">📋 Copy Original</button>
+        <button class="btn btn-done" onclick="markDone(21)">✅ Done</button>
+        <button class="btn btn-skip" onclick="markSkip(21)">⏭ Skip (keep original)</button>
+    </div>
+</div>
+
+<div class="chunk" id="chunk-22" data-id="22">
+    <div class="chunk-header">
+        <span class="chunk-id">Chunk 22</span>
+        <span class="chunk-section">Limitations</span>
+        <span class="chunk-words">60 words</span>
+        <span class="status status-pending" id="status-22">Pending</span>
+    </div>
+    <label>Original text (click Copy to copy)</label>
+    <textarea class="text-box" id="orig-22" readonly rows="3">Everything here runs in a Python simulator—we have not touched the kernel
+yet. We are limited to 8 processes because of the fixed observation size.
+Our ``realistic'' workloads come from textbook distributions, not actual
+/proc traces from production machines. And all three edge types
+share the same mean-pooling aggregation; relation-specific kernels like
+R-GCN might squeeze out more performance.
+
+% ———————————————————————</textarea>
+    <label>Humanized result (paste from HumanizeAI.pro)</label>
+    <textarea class="text-box" id="result-22" rows="3" placeholder="Paste the humanized text here..."></textarea>
+    <div class="btn-row">
+        <button class="btn btn-copy" onclick="copyChunk(22)">📋 Copy Original</button>
+        <button class="btn btn-done" onclick="markDone(22)">✅ Done</button>
+        <button class="btn btn-skip" onclick="markSkip(22)">⏭ Skip (keep original)</button>
+    </div>
+</div>
+
+<div class="chunk" id="chunk-23" data-id="23">
+    <div class="chunk-header">
+        <span class="chunk-id">Chunk 23</span>
+        <span class="chunk-section">Conclusion</span>
+        <span class="chunk-words">90 words</span>
+        <span class="status status-pending" id="status-23">Pending</span>
+    </div>
+    <label>Original text (click Copy to copy)</label>
+    <textarea class="text-box" id="orig-23" readonly rows="3">The takeaway is twofold. First, starvation drops by 12–24 percentage
+points over CFS in every condition we tested—the learned aging reward
+works. Second, the graph is not optional. On realistic workloads—the ones
+that actually resemble what a real OS would face—a flat RL agent cannot
+beat CFS. The relational structure is what provides the signal to spot
+scheduling opportunities that a flat observation vector misses entirely.
+
+Next steps: eBPF integration into a real Linux kernel,
+variable-length process queues with sparse graph attention, and evaluation
+on production workload traces.
+
+% ———————————————————————</textarea>
+    <label>Humanized result (paste from HumanizeAI.pro)</label>
+    <textarea class="text-box" id="result-23" rows="3" placeholder="Paste the humanized text here..."></textarea>
+    <div class="btn-row">
+        <button class="btn btn-copy" onclick="copyChunk(23)">📋 Copy Original</button>
+        <button class="btn btn-done" onclick="markDone(23)">✅ Done</button>
+        <button class="btn btn-skip" onclick="markSkip(23)">⏭ Skip (keep original)</button>
+    </div>
+</div>
+
+</div>
+
+<button class="btn btn-export" onclick="exportResults()">📥 Export All Results</button>
+
+<script>
+let completed = new Set();
+
+function copyChunk(id) {
+    const text = document.getElementById("orig-" + id).value;
+    navigator.clipboard.writeText(text).then(() => {
+        const btn = event.target;
+        btn.textContent = "✅ Copied!";
+        setTimeout(() => btn.textContent = "📋 Copy Original", 1500);
+    });
+}
+
+function markDone(id) {
+    const result = document.getElementById("result-" + id).value.trim();
+    if (!result) {
+        alert("Paste the humanized text first!");
+        return;
+    }
+    completed.add(id);
+    document.getElementById("chunk-" + id).classList.add("completed");
+    document.getElementById("status-" + id).textContent = "Done";
+    document.getElementById("status-" + id).className = "status status-done";
+    updateCount();
+}
+
+function markSkip(id) {
+    // Copy original to result
+    document.getElementById("result-" + id).value = document.getElementById("orig-" + id).value;
+    completed.add(id);
+    document.getElementById("chunk-" + id).classList.add("completed");
+    document.getElementById("status-" + id).textContent = "Skipped";
+    document.getElementById("status-" + id).className = "status status-done";
+    updateCount();
+}
+
+function updateCount() {
+    document.getElementById("doneCount").textContent = completed.size;
+}
+
+function exportResults() {
+    const results = [];
+    for (let i = 1; i <= 23; i++) {
+        const orig = document.getElementById("orig-" + i).value;
+        const result = document.getElementById("result-" + i).value.trim() || orig;
+        results.push({
+            id: i,
+            section: document.querySelector("#chunk-" + i + " .chunk-section").textContent,
+            original: orig,
+            humanized: result,
+            status: completed.has(i) ? "done" : "pending"
+        });
+    }
+    const blob = new Blob([JSON.stringify(results, null, 2)], {type: "application/json"});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "humanized_chunks.json";
+    a.click();
+    URL.revokeObjectURL(url);
+}
+
+// Auto-save to localStorage
+function autoSave() {
+    const data = {};
+    for (let i = 1; i <= 23; i++) {
+        data[i] = document.getElementById("result-" + i).value;
+    }
+    data._completed = Array.from(completed);
+    localStorage.setItem("humanizer_progress", JSON.stringify(data));
+}
+
+function autoLoad() {
+    const saved = localStorage.getItem("humanizer_progress");
+    if (!saved) return;
+    const data = JSON.parse(saved);
+    for (let i = 1; i <= 23; i++) {
+        if (data[i]) {
+            document.getElementById("result-" + i).value = data[i];
+        }
+    }
+    if (data._completed) {
+        data._completed.forEach(id => {
+            completed.add(id);
+            document.getElementById("chunk-" + id).classList.add("completed");
+            document.getElementById("status-" + id).textContent = "Done";
+            document.getElementById("status-" + id).className = "status status-done";
+        });
+        updateCount();
+    }
+}
+
+// Auto-save every 10 seconds
+setInterval(autoSave, 10000);
+// Load saved progress on start
+autoLoad();
+</script>
+</body>
+</html>

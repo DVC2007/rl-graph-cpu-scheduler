@@ -1,0 +1,9 @@
+workload,tier,avg_wait_mean,aw_ci_low,aw_ci_high,starvation_mean,pwait_mean
+uniform,FCFS,23.907,22.84,24.98,0.8156,35.965
+uniform,RL only (MaskablePPO),19.301,18.539,20.077,0.6087,29.207
+uniform,RL + GraphSAGE,18.543,17.795,19.266,0.5873,27.928
+uniform,SRTF (oracle),14.492,13.929,15.077,0.4899,22.013
+realistic,CFS,28.568,26.701,30.498,0.6958,38.03
+realistic,RL only (MaskablePPO),29.157,27.303,30.987,0.6011,41.985
+realistic,RL + GraphSAGE,28.419,26.67,30.19,0.6049,40.992
+realistic,SRTF (oracle),17.509,16.496,18.583,0.4518,23.05

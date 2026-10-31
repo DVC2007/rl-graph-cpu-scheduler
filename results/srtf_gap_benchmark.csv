@@ -1,0 +1,11 @@
+workload,model,avg_wait,ci_low,ci_high,starvation,gap_closed_pct
+uniform,Classical (best),23.907,22.874,24.963,0.8156,0.0
+uniform,RL (flat MLP),19.301,18.536,20.072,0.6087,48.9
+uniform,RL + GraphSAGE,18.543,17.798,19.282,0.5873,57.0
+uniform,RL + Attn + SRPT,19.009,18.287,19.742,0.6044,52.0
+uniform,SRTF oracle,14.492,13.911,15.108,0.4899,100.0
+realistic,Classical (best),28.568,26.751,30.461,0.6958,0.0
+realistic,RL (flat MLP),29.157,27.351,30.991,0.6011,-5.3
+realistic,RL + GraphSAGE,28.419,26.651,30.204,0.6049,1.3
+realistic,RL + Attn + SRPT,28.591,26.814,30.35,0.6233,-0.2
+realistic,SRTF oracle,17.509,16.44,18.602,0.4518,100.0
